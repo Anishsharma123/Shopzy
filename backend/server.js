@@ -53,6 +53,9 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import csrf from "csurf";
+import helmet from "helmet";
+
 
 dotenv.config();
 
@@ -65,6 +68,16 @@ const limiter = rateLimit({
   max: 100,
 });
 app.use(limiter);
+
+//CSRF
+const csrfProtection = csrf({ cookie: true });
+app.use(csrfProtection);
+app.get("/api/csrf-token", (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+//helmet
+app.use(helmet());
 
 
 // 🔐 LOGIN RATE LIMIT (STRICT)
