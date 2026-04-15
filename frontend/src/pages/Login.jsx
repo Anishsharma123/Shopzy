@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import API from "../services/api";
+import { AuthContext } from "../context/AuthContext";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,13 +21,18 @@ function Login() {
     }
 
     try {
-      const res = await API.post("/auth/login", {
+      // ✅ Login request (cookie will be set automatically)
+      await API.post("/auth/login", {
         email,
         password,
+        rememberMe
       });
 
-      // store token
-      localStorage.setItem("token", res.data.token);
+      // ✅ Get current user
+      const res = await API.get("/auth/me");
+
+      // ✅ Save user in global state
+      setUser(res.data.user);
 
       alert("Login Successful ✅");
 
@@ -58,6 +66,14 @@ function Login() {
         <p>
           Don't have an account? <Link to="/signup">Signup</Link>
         </p>
+        <label style={{ fontSize: "14px" }}>
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          Remember Me
+        </label>
       </form>
     </div>
   );

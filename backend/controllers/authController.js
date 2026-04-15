@@ -46,47 +46,51 @@ export const registerUser = async (req, res) => {
 // LOGIN
 export const loginUser = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
-    // check user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    // tokens
+    const accessToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "30s" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: rememberMe ? "7d" : "1m" }
+    );
+
+    // cookie duration
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: false, // true in production
+    };
 
     res
-      .cookie("accessToken", token, {
-        httpOnly: true, //JS can’t access it
-        secure: false, //true in production in https
-        sameSite: "strict", //prevents CSRF
-        maxAge: 15 * 60 * 1000, //15min
+      .cookie("accessToken", accessToken, {
+        ...cookieOptions,
+        maxAge: 30* 1000, // always short
       })
       .cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        ...cookieOptions,
+        maxAge: rememberMe
+          ? 7 * 24 * 60 * 60 * 1000 // 7 days
+          : 60 * 1000, // 1 day
       })
-      .json({
-        message: "User logged in successfully.",
-      });
+      .json({ message: "Login successful" });
+
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -96,9 +100,18 @@ export const logoutUser = (req, res) => {
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");
 
-  res.json({
-    message: "Logged out Successfully.",
-  });
+  res
+  .clearCookie("accessToken", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+  })
+  .clearCookie("refreshToken", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+  })
+  .json({ message: "Logged out Successfully." });
 };
 
 export const refreshToken = (req, res) => {
@@ -145,5 +158,17 @@ export const refreshToken = (req, res) => {
     return res
       .status(403)
       .json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user).select("-password");
+
+    res.json({
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
   }
 };

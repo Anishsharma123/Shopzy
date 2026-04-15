@@ -6,6 +6,9 @@ import {
   refreshToken,
   logoutUser,
 } from "../controllers/authController.js";
+import { getMe } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
+
 
 const router = express.Router();
 
@@ -48,5 +51,8 @@ router.post("/refresh", refreshToken);
 
 // ✅ LOGOUT
 router.post("/logout", logoutUser);
+
+//getme
+router.get("/me", protect, getMe);
 
 export default router;
