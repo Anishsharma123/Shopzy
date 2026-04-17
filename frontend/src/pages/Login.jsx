@@ -25,7 +25,7 @@ function Login() {
       await API.post("/auth/login", {
         email,
         password,
-        rememberMe
+        rememberMe,
       });
 
       // ✅ Get current user
@@ -74,6 +74,16 @@ function Login() {
           />
           Remember Me
         </label>
+        <p>
+          Forgot Password? <Link to="/forgot-password">Click here</Link>
+        </p>
+        <button
+          onClick={() => {
+            window.location.href = "http://localhost:5000/api/auth/google";
+          }}
+        >
+          Continue with Google
+        </button>
       </form>
     </div>
   );

@@ -1,14 +1,15 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import csrf from "csurf";
 import helmet from "helmet";
+import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ path: "./.env" });
+import passport from "./config/passport.js";
 
 const app = express();
 
@@ -23,6 +24,9 @@ const limiter = rateLimit({
   max: 100,
 });
 app.use(limiter);
+
+//passport for google oauth
+app.use(passport.initialize());
 
 
 // 🔐 LOGIN RATE LIMIT
@@ -52,7 +56,7 @@ app.use(cookieParser());
 const csrfProtection = csrf({ cookie: true });
 
 // 👉 Only protect sensitive routes (NOT login/register)
-app.use("/api/protected", csrfProtection);
+// app.use("/api/protected", csrfProtection);
 
 
 // 🔑 CSRF TOKEN ROUTE

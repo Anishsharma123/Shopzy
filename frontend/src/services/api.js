@@ -9,14 +9,29 @@ const API = axios.create({
 API.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401) {
-      await axios.post(
-        "http://localhost:5000/api/auth/refresh",
-        {},
-        { withCredentials: true }
-      );
-      return API(error.config);
+    const originalRequest = error.config;
+
+    // ❌ Avoid infinite loop
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      error.config.url !== "/auth/refresh"
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        await axios.post(
+          "http://localhost:5000/api/auth/refresh",
+          {},
+          { withCredentials: true }
+        );
+
+        return API(originalRequest);
+      } catch (err) {
+        return Promise.reject(err);
+      }
     }
+
     return Promise.reject(error);
   }
 );
