@@ -2,31 +2,34 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+    email: { type: String, required: true, unique: true },
+    password: { type: String },
 
-    password: {
-      type: String,
-      required: true,
-    },
+    provider: { type: String, default: "local" },
 
-    // 🔥 ADD THESE INSIDE MAIN OBJECT
-    resetPasswordToken: {
-      type: String,
-    },
+    // 🔐 EMAIL VERIFICATION
+    isVerified: { type: Boolean, default: false },
+    verifyToken: String,
+    verifyExpires: Date,
 
-    resetPasswordExpires: {
-      type: Date,
-    },
+    // 🔁 PASSWORD RESET
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+
+    // 🔒 BRUTE FORCE
+    loginAttempts: { type: Number, default: 0 },
+    lockUntil: Date,
+
+    // 📱 SESSIONS
+    sessions: [
+      {
+        userAgent: String,
+        ip: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default mongoose.model("User", userSchema);
