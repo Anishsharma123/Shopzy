@@ -6,6 +6,7 @@ import Cart from "./pages/Cart";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/verify/:token" element={<VerifyEmail />} />
       </Routes>
     </BrowserRouter>
   );

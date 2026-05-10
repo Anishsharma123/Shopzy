@@ -11,6 +11,7 @@ import {
   getMe,
   forgotPassword,
   resetPassword,
+  verifyEmail,
 } from "../controllers/authController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -53,55 +54,81 @@ router.post(
 
 // ================= GOOGLE LOGIN =================
 
-// 🔥 STEP 1: Redirect to Google
+// 🔥 Redirect user to Google
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
 );
 
-// 🔥 STEP 2: Google Callback
+// 🔥 Google callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
     failureRedirect: "http://localhost:5173/",
   }),
-  (req, res) => {
+  async (req, res) => {
     try {
-      // ✅ Create JWT like normal login
-      const token = jwt.sign(
+      // create access token
+      const accessToken = jwt.sign(
         { id: req.user._id },
         process.env.JWT_SECRET,
         { expiresIn: "15m" }
       );
 
-      // 🍪 Set cookie
-      res.cookie("accessToken", token, {
+      // create refresh token
+      const refreshToken = jwt.sign(
+        { id: req.user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      const cookieOptions = {
         httpOnly: true,
         sameSite: "strict",
         secure: false,
-      });
+      };
 
-      // 🔁 Redirect to frontend
+      // send cookies
+      res
+        .cookie("accessToken", accessToken, {
+          ...cookieOptions,
+          maxAge: 15 * 60 * 1000,
+        })
+        .cookie("refreshToken", refreshToken, {
+          ...cookieOptions,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+      // redirect frontend
       res.redirect("http://localhost:5173/home");
+
     } catch (error) {
-      console.log("❌ GOOGLE LOGIN ERROR:", error);
+      console.log("GOOGLE CALLBACK ERROR:", error);
+
       res.redirect("http://localhost:5173/");
     }
   }
 );
 
-// ================= TOKEN =================
+// ================= VERIFY EMAIL =================
+router.get("/verify/:token", verifyEmail);
+
+// ================= REFRESH TOKEN =================
 router.post("/refresh", refreshToken);
 
 // ================= LOGOUT =================
 router.post("/logout", logoutUser);
 
-// ================= GET USER =================
+// ================= GET CURRENT USER =================
 router.get("/me", protect, getMe);
 
-// ================= PASSWORD RESET =================
+// ================= FORGOT PASSWORD =================
 router.post("/forgot-password", forgotPassword);
+
+// ================= RESET PASSWORD =================
 router.post("/reset-password/:token", resetPassword);
 
 export default router;

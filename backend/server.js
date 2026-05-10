@@ -1,85 +1,76 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import authRoutes from "./routes/authRoutes.js";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
-import csrf from "csurf";
 import helmet from "helmet";
-import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
+import passport from "passport";
 
-dotenv.config({ path: "./.env" });
-import passport from "./config/passport.js";
+import authRoutes from "./routes/authRoutes.js";
+
+// passport config
+import "./config/passport.js";
+
+// cron cleanup
+import "./cron/cleanup.js";
 
 const app = express();
 
-
-// 🛡️ SECURITY HEADERS
+// ================= SECURITY =================
 app.use(helmet());
 
-
-// 🔐 GLOBAL RATE LIMIT
+// ================= RATE LIMIT =================
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
+
 app.use(limiter);
 
-//passport for google oauth
-app.use(passport.initialize());
-
-
-// 🔐 LOGIN RATE LIMIT
+// ================= LOGIN RATE LIMIT =================
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
 });
+
 app.use("/api/auth/login", loginLimiter);
 
+// ================= CORS =================
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-// 🌐 CORS (MUST come before cookies & routes)
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
-
-
-// 🔧 BODY PARSER
+// ================= BODY PARSER =================
 app.use(express.json());
 
-
-// 🍪 COOKIE PARSER (BEFORE CSRF)
+// ================= COOKIE PARSER =================
 app.use(cookieParser());
 
+// ================= PASSPORT =================
+app.use(passport.initialize());
 
-// 🔐 CSRF PROTECTION (APPLY AFTER COOKIE PARSER)
-const csrfProtection = csrf({ cookie: true });
-
-// 👉 Only protect sensitive routes (NOT login/register)
-// app.use("/api/protected", csrfProtection);
-
-
-// 🔑 CSRF TOKEN ROUTE
-app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
-});
-
-
-// 🔗 ROUTES
+// ================= ROUTES =================
 app.use("/api/auth", authRoutes);
 
-
-// 🧪 TEST ROUTE
+// ================= TEST ROUTE =================
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
-
-// 🗄️ DATABASE
+// ================= DATABASE =================
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB Connected ✅");
-    app.listen(5000, () => console.log("Server running on port 5000"));
+
+    app.listen(5000, () => {
+      console.log("Server running on port 5000");
+    });
   })
   .catch((err) => console.log(err));

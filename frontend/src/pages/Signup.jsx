@@ -6,6 +6,7 @@ import "../styles/login.css";
 function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
@@ -33,7 +34,11 @@ function Signup() {
       // redirect to login
       navigate("/");
     } catch (error) {
-      alert(error.response?.data?.message || "Signup failed ❌");
+      alert(
+        error.response?.data?.errors?.[0]?.msg ||
+          error.response?.data?.message ||
+          "Signup failed ❌",
+      );
     }
   };
 
